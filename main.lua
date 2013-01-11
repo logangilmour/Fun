@@ -1,9 +1,22 @@
+require("AnAL")
+
+
 local herbs = {x=0,y=0,z=1}
 local background = {}
 local camera = {x=0, y=0, z=0}
 local clouds = {}
 
+local liza = {x=0,y=0,z=0}
+
 function love.load()
+
+   -- Create animation.
+   local limg = love.graphics.newImage("sprites/liza.png")
+   liza.walkLeft = newAnimation(limg, 32, 32, 0.1, 3,6)
+   liza.walkRight = newAnimation(limg, 32, 32, 0.1, 7,10)
+   liza.stand = newAnimation(limg,32,32,0.1,3,3)
+   liza.anim=liza.stand
+   liza.climb = newAnimation(limg, 32, 32, 0.1, 1,2)
    for i = 1,1000 do
       table.insert(clouds,{
                       x=math.random()*10000,
@@ -75,6 +88,19 @@ function pdraw(object)
    love.graphics.pop()
 end
 
+function drawChar(char)
+local distance = (char.z-camera.z)/500
+   if distance < 0.1 then return end
+   effect:send("Distance",distance)
+   love.graphics.push()
+   love.graphics.translate(320,240)
+   love.graphics.scale(1/distance,1/distance)
+   --toColor(41,197,255,1/distance);
+   char.anim:draw(char.x-camera.x, char.y-camera.y)
+   love.graphics.pop()
+
+end
+
 function love.draw()
         love.graphics.setPixelEffect()
         love.graphics.setColorMode("replace")
@@ -93,31 +119,56 @@ function love.draw()
            pdraw(v)
         end
         pdraw(herbs)
+        drawChar(liza)
         --manyClouds(49,0,0)
 end
 
+function chase(object,dist)
+   camera.x=object.x
+   camera.y=object.y
+   camera.z=object.z-dist
+end
 
-function love.update(dt)
+function control()
    if love.keyboard.isDown("left") then
-      camera.x=camera.x-5
-   end
-   if love.keyboard.isDown("right") then
-      camera.x=camera.x+5
-   end
-   if love.keyboard.isDown("up") then
-      camera.z=camera.z+5
-   end
-   if love.keyboard.isDown("down") then
-      camera.z=camera.z-5
+      liza.anim:play()
+      liza.anim=liza.walkLeft
+      liza.x=liza.x-5
+   elseif love.keyboard.isDown("right") then
+      liza.anim:play()
+      liza.anim=liza.walkRight
+      liza.x=liza.x+5
+   elseif love.keyboard.isDown("up") then
+      liza.anim:play()
+      liza.anim=liza.climb
+      liza.y=liza.y-5
+   elseif love.keyboard.isDown("down") then
+      liza.anim:play()
+      liza.anim=liza.climb
+      liza.y=liza.y+5
+   else
+      liza.anim:reset()
+      liza.anim:stop()
    end
    if love.keyboard.isDown("a") then
-      camera.y=camera.y-5
+      liza.z=liza.z-5
    end
    if love.keyboard.isDown(";") then
-      camera.y=camera.y+5
+      liza.z=liza.z+5
    end
+end
+
+function animate(object,dt)
+   object.anim:update(dt)
+end
+
+function love.update(dt)
+   control()
+   animate(liza,dt)
+   chase(liza,500)
 
 end
+
 
 function love.keypressed(key)   -- we do not need the unicode, so we can leave it out
    if key == "escape" then
